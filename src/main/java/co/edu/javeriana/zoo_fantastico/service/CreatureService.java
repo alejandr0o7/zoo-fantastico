@@ -2,7 +2,9 @@ package co.edu.javeriana.zoo_fantastico.service;
 
 import co.edu.javeriana.zoo_fantastico.exception.ResourceNotFoundException;
 import co.edu.javeriana.zoo_fantastico.model.Creature;
+import co.edu.javeriana.zoo_fantastico.model.Zone;
 import co.edu.javeriana.zoo_fantastico.repository.CreatureRepository;
+import co.edu.javeriana.zoo_fantastico.repository.ZoneRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +14,17 @@ import java.util.List;
 public class CreatureService {
 
     private final CreatureRepository creatureRepository;
+    private final ZoneRepository zoneRepository;
 
     @Autowired
-    public CreatureService(CreatureRepository creatureRepository) {
+    public CreatureService(CreatureRepository creatureRepository, ZoneRepository zoneRepository) {
         this.creatureRepository = creatureRepository;
+        this.zoneRepository = zoneRepository;
     }
 
     public Creature createCreature(Creature creature) {
         validateCreature(creature);
+        creature.setZone(resolveZone(creature.getZone(), null, null));
         return creatureRepository.save(creature);
     }
 
@@ -35,11 +40,13 @@ public class CreatureService {
     public Creature updateCreature(Long id, Creature updatedCreature) {
         validateCreature(updatedCreature);
         Creature creature = getCreatureById(id);
+        Zone zone = resolveZone(updatedCreature.getZone(), id, creature.getZone());
         creature.setName(updatedCreature.getName());
         creature.setSpecies(updatedCreature.getSpecies());
         creature.setSize(updatedCreature.getSize());
         creature.setDangerLevel(updatedCreature.getDangerLevel());
         creature.setHealthStatus(updatedCreature.getHealthStatus());
+        creature.setZone(zone);
         return creatureRepository.save(creature);
     }
 
@@ -60,5 +67,30 @@ public class CreatureService {
         if (creature.getDangerLevel() < 1 || creature.getDangerLevel() > 10) {
             throw new IllegalArgumentException("Danger level must be between 1 and 10");
         }
+    }
+
+    private Zone resolveZone(Zone requestedZone, Long creatureId, Zone currentZone) {
+        if (requestedZone == null) {
+            return null;
+        }
+        if (requestedZone.getId() == null) {
+            throw new IllegalArgumentException("Zone id is required");
+        }
+
+        Long zoneId = requestedZone.getId();
+        Zone zone = zoneRepository.findById(zoneId)
+                .orElseThrow(() -> new ResourceNotFoundException("Zone not found with id: " + zoneId));
+
+        long currentCreatures = creatureRepository.countByZoneId(zoneId);
+        boolean alreadyAssigned = creatureId != null
+                && currentZone != null
+                && zoneId.equals(currentZone.getId());
+        if (alreadyAssigned) {
+            currentCreatures--;
+        }
+        if (currentCreatures >= zone.getCapacity()) {
+            throw new IllegalStateException("La zona ha alcanzado su capacidad máxima");
+        }
+        return zone;
     }
 }

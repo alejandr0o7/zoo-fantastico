@@ -18,9 +18,9 @@ public class Zone {
 
     private String name;
     private String description;
-    private Integer capacity;
+    private int capacity;
 
-    public Zone(String name, String description, Integer capacity) {
+    public Zone(String name, String description, int capacity) {
         this.name = name;
         this.description = description;
         this.capacity = capacity;

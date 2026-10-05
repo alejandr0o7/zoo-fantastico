@@ -7,4 +7,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface CreatureRepository extends JpaRepository<Creature, Long> {
     long countByZoneId(Long zoneId);
+    boolean existsByZoneId(Long zoneId);
 }
