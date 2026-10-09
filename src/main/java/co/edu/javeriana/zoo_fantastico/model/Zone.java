@@ -17,7 +17,9 @@ public class Zone {
     private Long id;
 
     private String name;
+
     private String description;
+
     private int capacity;
 
     public Zone(String name, String description, int capacity) {

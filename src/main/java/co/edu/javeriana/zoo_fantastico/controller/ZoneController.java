@@ -1,20 +1,19 @@
 package co.edu.javeriana.zoo_fantastico.controller;
 
+import co.edu.javeriana.zoo_fantastico.dto.ZoneResponse;
 import co.edu.javeriana.zoo_fantastico.model.Zone;
 import co.edu.javeriana.zoo_fantastico.service.ZoneService;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/*
+ * Controller encargado de recibir las peticiones relacionadas
+ * con las zonas.
+ */
 @RestController
 @RequestMapping("/api/zones")
 public class ZoneController {
@@ -25,30 +24,80 @@ public class ZoneController {
         this.zoneService = zoneService;
     }
 
+    /*
+     * ========================================================
+     * POST /api/zones
+     * ========================================================
+     */
     @PostMapping
-    public ResponseEntity<Zone> createZone(@RequestBody Zone zone) {
-        Zone newZone = zoneService.createZone(zone);
-        return ResponseEntity.status(HttpStatus.CREATED).body(newZone);
+    public ResponseEntity<ZoneResponse> createZone(
+            @RequestBody Zone zone) {
+
+        ZoneResponse newZone =
+                zoneService.createZone(zone);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(newZone);
     }
 
+    /*
+     * ========================================================
+     * GET /api/zones
+     * ========================================================
+     *
+     * Ahora esta consulta devuelve:
+     *
+     * - datos de la zona
+     * - capacidad
+     * - cantidad de criaturas
+     * - lista de criaturas
+     */
     @GetMapping
-    public List<Zone> getAllZones() {
+    public List<ZoneResponse> getAllZones() {
+
         return zoneService.getAllZones();
     }
 
+    /*
+     * ========================================================
+     * GET /api/zones/{id}
+     * ========================================================
+     */
     @GetMapping("/{id}")
-    public Zone getZoneById(@PathVariable Long id) {
+    public ZoneResponse getZoneById(
+            @PathVariable Long id) {
+
         return zoneService.getZoneById(id);
     }
 
+    /*
+     * ========================================================
+     * PUT /api/zones/{id}
+     * ========================================================
+     */
     @PutMapping("/{id}")
-    public Zone updateZone(@PathVariable Long id, @RequestBody Zone updatedZone) {
-        return zoneService.updateZone(id, updatedZone);
+    public ZoneResponse updateZone(
+            @PathVariable Long id,
+            @RequestBody Zone updatedZone) {
+
+        return zoneService.updateZone(
+                id,
+                updatedZone
+        );
     }
 
+    /*
+     * ========================================================
+     * DELETE /api/zones/{id}
+     * ========================================================
+     */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteZone(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteZone(
+            @PathVariable Long id) {
+
         zoneService.deleteZone(id);
+
         return ResponseEntity.noContent().build();
     }
 }
