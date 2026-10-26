@@ -1,0 +1,216 @@
+{
+  "info": {
+    "name": "Zoo Fantastico - CRUD",
+    "description": "Run in order (Collection Runner). Requires the app on {{baseUrl}} (default http://localhost:8080) and the 'Zoo Fantastico - Local' environment selected.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "00 - Create zone (prerequisite)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+        "var json = pm.response.json();",
+        "pm.test('Zone has id and capacity', function () {",
+        "  pm.expect(json.id).to.be.a('number');",
+        "  pm.expect(json.capacity).to.eql(10);",
+        "  pm.expect(json.creatureCount).to.eql(0);",
+        "});",
+        "pm.environment.set('zoneId', json.id);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Bosque Postman\",\n  \"description\": \"Zona creada desde Postman\",\n  \"capacity\": 10\n}" },
+        "url": { "raw": "{{baseUrl}}/api/zones", "host": ["{{baseUrl}}"], "path": ["api", "zones"] }
+      }
+    },
+    {
+      "name": "01 - POST create creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 201 Created', function () { pm.response.to.have.status(201); });",
+        "var json = pm.response.json();",
+        "pm.test('Response has id and echoes the request', function () {",
+        "  pm.expect(json.id).to.be.a('number');",
+        "  pm.expect(json.name).to.eql('Smaug');",
+        "  pm.expect(json.species).to.eql('Dragon');",
+        "  pm.expect(json.dangerLevel).to.eql(7);",
+        "  pm.expect(json.healthStatus).to.eql('healthy');",
+        "  pm.expect(json.zoneId).to.eql(parseInt(pm.environment.get('zoneId')));",
+        "  pm.expect(json.zoneName).to.eql('Bosque Postman');",
+        "});",
+        "pm.environment.set('creatureId', json.id);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Smaug\",\n  \"species\": \"Dragon\",\n  \"size\": 5.5,\n  \"dangerLevel\": 7,\n  \"healthStatus\": \"healthy\",\n  \"zoneId\": {{zoneId}}\n}" },
+        "url": { "raw": "{{baseUrl}}/api/creatures", "host": ["{{baseUrl}}"], "path": ["api", "creatures"] }
+      }
+    },
+    {
+      "name": "02 - GET list creatures",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+        "var json = pm.response.json();",
+        "pm.test('Body is an array containing the created creature', function () {",
+        "  pm.expect(json).to.be.an('array');",
+        "  var id = parseInt(pm.environment.get('creatureId'));",
+        "  pm.expect(json.some(function (c) { return c.id === id; })).to.be.true;",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures", "host": ["{{baseUrl}}"], "path": ["api", "creatures"] }
+      }
+    },
+    {
+      "name": "03 - GET creature by id",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+        "var json = pm.response.json();",
+        "pm.test('Returns the requested creature', function () {",
+        "  pm.expect(json.id).to.eql(parseInt(pm.environment.get('creatureId')));",
+        "  pm.expect(json.name).to.eql('Smaug');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{creatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{creatureId}}"] }
+      }
+    },
+    {
+      "name": "04 - GET creature not found (404)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 404', function () { pm.response.to.have.status(404); });"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/999999999", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "999999999"] }
+      }
+    },
+    {
+      "name": "05 - PUT update creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 200', function () { pm.response.to.have.status(200); });",
+        "var json = pm.response.json();",
+        "pm.test('Fields were updated', function () {",
+        "  pm.expect(json.id).to.eql(parseInt(pm.environment.get('creatureId')));",
+        "  pm.expect(json.name).to.eql('Smaug II');",
+        "  pm.expect(json.dangerLevel).to.eql(9);",
+        "  pm.expect(json.healthStatus).to.eql('sick');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Smaug II\",\n  \"species\": \"Wyvern\",\n  \"size\": 8.0,\n  \"dangerLevel\": 9,\n  \"healthStatus\": \"sick\",\n  \"zoneId\": {{zoneId}}\n}" },
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{creatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{creatureId}}"] }
+      }
+    },
+    {
+      "name": "06 - POST invalid creature (400)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 400', function () { pm.response.to.have.status(400); });",
+        "var json = pm.response.json();",
+        "pm.test('Errors are reported per field', function () {",
+        "  pm.expect(json).to.have.property('name');",
+        "  pm.expect(json).to.have.property('dangerLevel');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"\",\n  \"species\": \"Dragon\",\n  \"size\": 1.0,\n  \"dangerLevel\": 99,\n  \"healthStatus\": \"healthy\",\n  \"zoneId\": {{zoneId}}\n}" },
+        "url": { "raw": "{{baseUrl}}/api/creatures", "host": ["{{baseUrl}}"], "path": ["api", "creatures"] }
+      }
+    },
+    {
+      "name": "07 - DELETE creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 204 No Content', function () { pm.response.to.have.status(204); });"
+      ] } }],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{creatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{creatureId}}"] }
+      }
+    },
+    {
+      "name": "08 - GET deleted creature (404)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 404 after delete', function () { pm.response.to.have.status(404); });"
+      ] } }],
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{creatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{creatureId}}"] }
+      }
+    },
+    {
+      "name": "09 - POST create critical creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 201', function () { pm.response.to.have.status(201); });",
+        "var json = pm.response.json();",
+        "pm.test('Creature is critical', function () { pm.expect(json.healthStatus).to.eql('critical'); });",
+        "pm.environment.set('criticalCreatureId', json.id);"
+      ] } }],
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fenix Herido\",\n  \"species\": \"Phoenix\",\n  \"size\": 2.0,\n  \"dangerLevel\": 4,\n  \"healthStatus\": \"critical\",\n  \"zoneId\": {{zoneId}}\n}" },
+        "url": { "raw": "{{baseUrl}}/api/creatures", "host": ["{{baseUrl}}"], "path": ["api", "creatures"] }
+      }
+    },
+    {
+      "name": "10 - DELETE critical creature (409 rejected)",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 409 Conflict', function () { pm.response.to.have.status(409); });",
+        "pm.test('Message explains the rule', function () {",
+        "  pm.expect(pm.response.text()).to.include('Cannot delete a creature in critical health');",
+        "});"
+      ] } }],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{criticalCreatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{criticalCreatureId}}"] }
+      }
+    },
+    {
+      "name": "11 - Cleanup: heal critical creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 200', function () { pm.response.to.have.status(200); });"
+      ] } }],
+      "request": {
+        "method": "PUT",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"name\": \"Fenix Herido\",\n  \"species\": \"Phoenix\",\n  \"size\": 2.0,\n  \"dangerLevel\": 4,\n  \"healthStatus\": \"healthy\",\n  \"zoneId\": {{zoneId}}\n}" },
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{criticalCreatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{criticalCreatureId}}"] }
+      }
+    },
+    {
+      "name": "12 - Cleanup: delete healed creature",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 204', function () { pm.response.to.have.status(204); });"
+      ] } }],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/creatures/{{criticalCreatureId}}", "host": ["{{baseUrl}}"], "path": ["api", "creatures", "{{criticalCreatureId}}"] }
+      }
+    },
+    {
+      "name": "13 - Cleanup: delete zone",
+      "event": [{ "listen": "test", "script": { "type": "text/javascript", "exec": [
+        "pm.test('Status is 204', function () { pm.response.to.have.status(204); });"
+      ] } }],
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": { "raw": "{{baseUrl}}/api/zones/{{zoneId}}", "host": ["{{baseUrl}}"], "path": ["api", "zones", "{{zoneId}}"] }
+      }
+    }
+  ]
+}
