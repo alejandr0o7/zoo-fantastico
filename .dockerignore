@@ -1,0 +1,8 @@
+# Solo se necesita el JAR de target/; esto reduce el contexto que se envía a Docker
+.git
+.mvn
+src
+jmeter
+postman
+target/*
+!target/zoo-fantastic-app.jar
