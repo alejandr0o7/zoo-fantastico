@@ -28,6 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>21</java.version>
+		<skipTests>false</skipTests>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -66,6 +67,7 @@
 	</dependencies>
 
 	<build>
+		<finalName>zoo-fantastic-app</finalName>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
@@ -106,6 +108,17 @@
 						</configuration>
 					</execution>
 				</executions>
+			</plugin>
+			<!-- Ejecuta las pruebas de src/test/java en la fase "test".
+			     Sin <version>: se usa la que gestiona spring-boot-starter-parent
+			     (forzar la 2.22.2 del enunciado bajaría de versión el plugin). -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<!-- false por defecto; se puede cambiar con -DskipTests -->
+					<skipTests>${skipTests}</skipTests>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
