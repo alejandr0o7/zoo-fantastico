@@ -64,7 +64,8 @@ class ZoneServiceTest {
         ZoneResponse r = zoneService.createZone(new Zone("Bosque", "Bosque encantado", 3));
 
         assertEquals(1L, r.id());
-        assertEquals("Bosque", r.name());
+        // FALLA INTENCIONAL (validación del pipeline): el nombre real es "Bosque"
+        assertEquals("Desierto", r.name());
         assertEquals("Bosque encantado", r.description());
         assertEquals(3, r.capacity());
         assertEquals(0, r.creatureCount());
