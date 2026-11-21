@@ -1,0 +1,101 @@
+// Pipeline CI/CD del Zoo Fantástico (Partes 5-7 del laboratorio) - versión LINUX.
+// Jenkins corre en un contenedor Linux (jenkins/jenkins:lts-jdk21) con acceso
+// al Docker del equipo por /var/run/docker.sock, por eso se usa "sh" y ./mvnw.
+// La versión para Jenkins en Windows es el archivo "Jenkinsfile" (bat + mvnw.cmd).
+// En el trabajo Pipeline de Jenkins: Script Path = Jenkinsfile.linux
+pipeline {
+    agent any
+
+    options {
+        // Dos despliegues a la vez pelearían por el mismo contenedor y puerto
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        IMAGE     = 'zoo-fantastic-app:latest'
+        CONTAINER = 'zoo-fantastico-app'
+        HOST_PORT = '8081'   // el 8080 del host lo usa otra aplicación
+        // Contraseña de MySQL guardada en Jenkins (Credentials > Secret text, ID db-password)
+        DB_PASSWORD = credentials('db-password')
+        DB_USER     = 'zoo'
+        // Dentro del contenedor "localhost" es el propio contenedor: MySQL está en el
+        // equipo, que escucha en 172.17.0.1 (host.docker.internal / host-gateway)
+        DB_URL = 'jdbc:mysql://host.docker.internal:3306/zoo_fantastico?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+    }
+
+    stages {
+        stage('Run Tests') {
+            steps {
+                // El repositorio puede guardar mvnw sin permiso de ejecución
+                sh 'chmod +x mvnw'
+                // Si alguna prueba falla, el pipeline se detiene aquí y no se despliega.
+                // Las pruebas usan H2 en memoria, no necesitan MySQL.
+                sh './mvnw -B clean test'
+            }
+            post {
+                always {
+                    junit allowEmptyResults: true, testResults: 'target/surefire-reports/*.xml'
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                // Las pruebas ya corrieron en la etapa anterior
+                sh './mvnw -B package -DskipTests'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t "$IMAGE" .'
+            }
+        }
+        stage('Docker Run') {
+            steps {
+                // Elimina el contenedor de la ejecución anterior (si existe) para liberar el puerto
+                sh 'docker rm -f "$CONTAINER" || true'
+                // -e DB_PASSWORD sin valor: Docker lo toma del entorno, sin escribirlo en el comando.
+                // --add-host: en Linux host.docker.internal no existe por defecto.
+                sh '''
+                    docker run -d --name "$CONTAINER" \
+                      --restart unless-stopped \
+                      --add-host=host.docker.internal:host-gateway \
+                      -p "$HOST_PORT":8080 \
+                      -e DB_PASSWORD \
+                      -e SPRING_DATASOURCE_USERNAME="$DB_USER" \
+                      -e SPRING_DATASOURCE_URL="$DB_URL" \
+                      "$IMAGE"
+                '''
+            }
+        }
+        stage('Comprobacion') {
+            steps {
+                // Desde Jenkins, el puerto publicado en el equipo se alcanza por host.docker.internal
+                sh '''
+                    for i in $(seq 1 30); do
+                        if curl -sf "http://host.docker.internal:$HOST_PORT/api/zones"; then
+                            echo
+                            echo "La aplicación responde"
+                            exit 0
+                        fi
+                        sleep 2
+                    done
+                    echo "La aplicación no respondió"
+                    docker logs --tail 50 "$CONTAINER"
+                    exit 1
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline terminado.'
+        }
+        success {
+            echo "¡Despliegue exitoso! App en http://localhost:${env.HOST_PORT}/api/zones"
+        }
+        failure {
+            echo 'Error en el pipeline. Revisar los logs.'
+        }
+    }
+}
