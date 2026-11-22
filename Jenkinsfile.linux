@@ -14,16 +14,21 @@ pipeline {
     environment {
         IMAGE     = 'zoo-fantastic-app:latest'
         CONTAINER = 'zoo-fantastico-app'
-        HOST_PORT = '8081'   // el 8080 del host lo usa otra aplicación
+        HOST_PORT = '8083'   // el 8080 del host lo usa otra aplicación
         // Contraseña de MySQL guardada en Jenkins (Credentials > Secret text, ID db-password)
         DB_PASSWORD = credentials('db-password')
-        DB_USER     = 'zoo'
+        DB_USER     = 'root'
         // Dentro del contenedor "localhost" es el propio contenedor: MySQL está en el
-        // equipo, que escucha en 172.17.0.1 (host.docker.internal / host-gateway)
-        DB_URL = 'jdbc:mysql://host.docker.internal:3306/zoo_fantastico?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
+        // contenedor zoo-mysql mediante la red Docker zoo-fantastico-net
+        DB_URL = 'jdbc:mysql://zoo-mysql:3306/zoo_fantastico?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC'
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/alejandr0o7/zoo-fantastico.git'
+            }
+        }
         stage('Run Tests') {
             steps {
                 // El repositorio puede guardar mvnw sin permiso de ejecución
@@ -58,7 +63,7 @@ pipeline {
                 sh '''
                     docker run -d --name "$CONTAINER" \
                       --restart unless-stopped \
-                      --add-host=host.docker.internal:host-gateway \
+                      --network zoo-fantastico-net \
                       -p "$HOST_PORT":8080 \
                       -e DB_PASSWORD \
                       -e SPRING_DATASOURCE_USERNAME="$DB_USER" \
@@ -69,10 +74,10 @@ pipeline {
         }
         stage('Comprobacion') {
             steps {
-                // Desde Jenkins, el puerto publicado en el equipo se alcanza por host.docker.internal
+                // Jenkins consulta la API mediante el nombre del contenedor en la red Docker
                 sh '''
                     for i in $(seq 1 30); do
-                        if curl -sf "http://host.docker.internal:$HOST_PORT/api/zones"; then
+                        if curl -sf "http://zoo-fantastico-app:8080/api/zones"; then
                             echo
                             echo "La aplicación responde"
                             exit 0
